@@ -1,0 +1,9 @@
+# Decisions
+
+## 002 — Try sqlc DB introspection later
+
+Currently using migration files as sqlc's schema source. Plan to revisit: delete migrations and point sqlc at the live DB via introspection instead. Better fits polyglot environments where the DB schema isn't owned by a single app — same pattern as Rails' schema.rb.
+
+## 001 — No migration runner (for now)
+
+Skipping tools like `golang-migrate` to reduce setup friction while learning the stack. Migrations are plain SQL files run manually with `psql`. Revisit once the schema stabilizes.
