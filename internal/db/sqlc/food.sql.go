@@ -7,7 +7,41 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
+
+const createFoodItem = `-- name: CreateFoodItem :one
+INSERT INTO food_items (name, caption, rating, photo_path) 
+VALUES ($1, $2, $3, $4) 
+RETURNING id, name, caption, rating, photo_path, created_at, updated_at
+`
+
+type CreateFoodItemParams struct {
+	Name      string
+	Caption   string
+	Rating    sql.NullFloat64
+	PhotoPath string
+}
+
+func (q *Queries) CreateFoodItem(ctx context.Context, arg CreateFoodItemParams) (FoodItem, error) {
+	row := q.db.QueryRowContext(ctx, createFoodItem,
+		arg.Name,
+		arg.Caption,
+		arg.Rating,
+		arg.PhotoPath,
+	)
+	var i FoodItem
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Caption,
+		&i.Rating,
+		&i.PhotoPath,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
 
 const listFoods = `-- name: ListFoods :many
 select id, name, caption, rating, photo_path, created_at, updated_at from food_items
