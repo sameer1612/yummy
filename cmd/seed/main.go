@@ -20,7 +20,6 @@ var foodItems = []db.CreateFoodItemParams{
 	{
 		Name:      "Burger",
 		Caption:   "Juicy potato patty burger",
-		Rating:    sql.NullFloat64{Float64: 4.2, Valid: true},
 		PhotoPath: "uploads/images/burger.png",
 	},
 	{
