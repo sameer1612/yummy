@@ -6,8 +6,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterRoutes(engine *gin.Engine, q *db.Queries) {
+func RegisterRoutes(engine *gin.Engine, queries *db.Queries) {
 	router := engine.Group("/api/v1").Group("/foods")
-	h := &FoodHandler{q: q}
-	router.GET("", h.ListFoods)
+	handler := &FoodHandler{queries: queries}
+	router.GET("", handler.ListFoods)
 }

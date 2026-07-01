@@ -7,13 +7,13 @@ import (
 )
 
 type FoodHandler struct {
-	q *db.Queries
+	queries *db.Queries
 }
 
-func (h *FoodHandler) ListFoods(c *gin.Context) {
-	foods, err := h.q.ListFoods(c.Request.Context())
+func (handler *FoodHandler) ListFoods(context *gin.Context) {
+	foods, err := handler.queries.ListFoods(context.Request.Context())
 	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
+		context.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -21,5 +21,5 @@ func (h *FoodHandler) ListFoods(c *gin.Context) {
 		foods = []db.FoodItem{}
 	}
 
-	c.JSON(200, gin.H{"data": foods})
+	context.JSON(200, gin.H{"data": foods})
 }
