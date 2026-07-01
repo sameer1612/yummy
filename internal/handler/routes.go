@@ -1,10 +1,13 @@
 package handler
 
-import "github.com/gin-gonic/gin"
+import (
+	db "yummy/internal/db/sqlc"
 
-func RegisterRoutes(engine *gin.Engine) {
+	"github.com/gin-gonic/gin"
+)
+
+func RegisterRoutes(engine *gin.Engine, q *db.Queries) {
 	router := engine.Group("/api/v1").Group("/foods")
-	{
-		router.GET("", ListFoods)
-	}
+	h := &FoodHandler{q: q}
+	router.GET("", h.ListFoods)
 }

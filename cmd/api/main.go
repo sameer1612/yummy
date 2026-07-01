@@ -1,11 +1,14 @@
 package main
 
 import (
+	"database/sql"
 	"log"
 	"yummy/internal/config"
+	db "yummy/internal/db/sqlc"
 	"yummy/internal/handler"
 
 	"github.com/gin-gonic/gin"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 func main() {
@@ -14,7 +17,18 @@ func main() {
 		log.Fatal(err)
 	}
 
+	dbSQL, err := sql.Open("pgx", cfg.DatabaseURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err := dbSQL.Ping(); err != nil {
+		log.Fatal(err)
+	}
+
+	queries := db.New(dbSQL)
+
 	engine := gin.Default()
-	handler.RegisterRoutes(engine)
+	handler.RegisterRoutes(engine, queries)
 	engine.Run(cfg.Port)
 }
