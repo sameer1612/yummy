@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"strconv"
 	"yummy/internal/config"
 	db "yummy/internal/db/sqlc"
@@ -22,6 +21,16 @@ type FoodItem struct {
 	PhotoPath string   `json:"photo_path"`
 }
 
+func toFoodItem(food db.FoodItem) FoodItem {
+	return FoodItem{
+		ID:        food.ID,
+		Name:      food.Name,
+		Caption:   food.Caption,
+		Rating:    nullable.NullableFloat(food.Rating),
+		PhotoPath: config.Config.BaseURL + "/" + food.PhotoPath,
+	}
+}
+
 func (handler *FoodHandler) ListFoods(context *gin.Context) {
 	foods, err := handler.queries.ListFoods(context.Request.Context())
 	if err != nil {
@@ -35,23 +44,17 @@ func (handler *FoodHandler) ListFoods(context *gin.Context) {
 
 	res := make([]FoodItem, len(foods))
 	for i, food := range foods {
-		res[i] = FoodItem{
-			ID:        food.ID,
-			Name:      food.Name,
-			Caption:   food.Caption,
-			Rating:    nullable.NullableFloat(food.Rating),
-			PhotoPath: config.Config.BaseURL + "/" + food.PhotoPath,
-		}
+		res[i] = toFoodItem(food)
 	}
 
 	context.JSON(200, gin.H{"data": res})
 }
 
 func (handler *FoodHandler) GetFoodItem(context *gin.Context) {
-	id_param := context.Param("id")
-	id, err := strconv.Atoi(id_param)
+	idParam := context.Param("id")
+	id, err := strconv.Atoi(idParam)
 	if err != nil {
-		fmt.Println("Error fetching food id from url:", err)
+		context.JSON(400, gin.H{"error": "invalid id"})
 		return
 	}
 
@@ -61,11 +64,5 @@ func (handler *FoodHandler) GetFoodItem(context *gin.Context) {
 		return
 	}
 
-	context.JSON(200, FoodItem{
-		ID:        food.ID,
-		Name:      food.Name,
-		Caption:   food.Caption,
-		Rating:    nullable.NullableFloat(food.Rating),
-		PhotoPath: config.Config.BaseURL + "/" + food.PhotoPath,
-	})
+	context.JSON(200, toFoodItem(food))
 }
