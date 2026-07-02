@@ -33,7 +33,7 @@ func toFoodItem(food db.FoodItem) FoodItem {
 		ID:        food.ID,
 		Name:      food.Name,
 		Caption:   food.Caption,
-		Rating:    nullable.NullableFloat(food.Rating),
+		Rating:    nullable.ToFloat64(food.Rating),
 		PhotoPath: config.Config.BaseURL + "/" + food.PhotoPath,
 	}
 }
