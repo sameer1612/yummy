@@ -1,4 +1,5 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { provideHttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { providePrimeNG } from 'primeng/config';
 import { definePreset } from '@primeng/themes';
@@ -28,6 +29,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
+    provideHttpClient(),
     providePrimeNG({
       theme: {
         preset: YummyPreset,
