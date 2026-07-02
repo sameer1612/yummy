@@ -33,6 +33,9 @@ func main() {
 	engine.Use(cors.New(cors.Config{
 		AllowOrigins: []string{"http://localhost:4200"},
 	}))
+
+	engine.Static("/uploads", "./uploads")
+
 	handler.RegisterRoutes(engine, queries)
 	engine.Run(cfg.Port)
 }

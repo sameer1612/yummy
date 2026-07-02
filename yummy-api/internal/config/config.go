@@ -11,6 +11,7 @@ import (
 type Config struct {
 	DatabaseURL string
 	Port        string
+	BaseURL     string
 }
 
 func Load() (Config, error) {
@@ -21,7 +22,7 @@ func Load() (Config, error) {
 	databaseURL := os.Getenv("DATABASE_URL")
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = ":8000"
+		port = "8000"
 	}
 
 	if databaseURL == "" {
@@ -30,7 +31,8 @@ func Load() (Config, error) {
 
 	config := Config{
 		DatabaseURL: databaseURL,
-		Port:        port,
+		Port:        ":" + port,
+		BaseURL:     "http://localhost:" + port,
 	}
 
 	return config, nil
