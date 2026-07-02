@@ -10,4 +10,5 @@ func RegisterRoutes(engine *gin.Engine, queries *db.Queries) {
 	router := engine.Group("/api/v1").Group("/foods")
 	handler := &FoodHandler{queries: queries}
 	router.GET("", handler.ListFoods)
+	router.GET(":id", handler.GetFoodItem)
 }

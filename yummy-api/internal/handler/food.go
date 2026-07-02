@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"fmt"
+	"strconv"
 	"yummy/internal/config"
 	db "yummy/internal/db/sqlc"
 	"yummy/internal/utils/nullable"
@@ -43,4 +45,27 @@ func (handler *FoodHandler) ListFoods(context *gin.Context) {
 	}
 
 	context.JSON(200, gin.H{"data": res})
+}
+
+func (handler *FoodHandler) GetFoodItem(context *gin.Context) {
+	id_param := context.Param("id")
+	id, err := strconv.Atoi(id_param)
+	if err != nil {
+		fmt.Println("Error fetching food id from url:", err)
+		return
+	}
+
+	food, err := handler.queries.GetFoodItem(context.Request.Context(), int32(id))
+	if err != nil {
+		context.JSON(404, gin.H{"error": err.Error()})
+		return
+	}
+
+	context.JSON(200, FoodItem{
+		ID:        food.ID,
+		Name:      food.Name,
+		Caption:   food.Caption,
+		Rating:    nullable.NullableFloat(food.Rating),
+		PhotoPath: config.Config.BaseURL + "/" + food.PhotoPath,
+	})
 }

@@ -43,6 +43,25 @@ func (q *Queries) CreateFoodItem(ctx context.Context, arg CreateFoodItemParams) 
 	return i, err
 }
 
+const getFoodItem = `-- name: GetFoodItem :one
+select id, name, caption, rating, photo_path, created_at, updated_at from food_items where id = $1
+`
+
+func (q *Queries) GetFoodItem(ctx context.Context, id int32) (FoodItem, error) {
+	row := q.db.QueryRowContext(ctx, getFoodItem, id)
+	var i FoodItem
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Caption,
+		&i.Rating,
+		&i.PhotoPath,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const listFoods = `-- name: ListFoods :many
 select id, name, caption, rating, photo_path, created_at, updated_at from food_items
 `
