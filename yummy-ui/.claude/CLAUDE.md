@@ -1,6 +1,11 @@
 
 You are an expert in TypeScript, Angular, and scalable web application development. You write functional, maintainable, performant, and accessible code following Angular and TypeScript best practices.
 
+## PrimeNG Reference
+
+- This project uses PrimeNG. Before answering any PrimeNG-related question or writing code that uses a PrimeNG component, theme option, or Tailwind integration detail, read `.claude/docs/primeng-llms-full.txt` for the authoritative API and usage reference instead of relying on prior knowledge or fetching primeng.dev (which blocks automated fetches).
+- If that file is missing or looks outdated relative to the installed `primeng` version in package.json, say so before proceeding.
+
 ## TypeScript Best Practices
 
 - Use strict type checking

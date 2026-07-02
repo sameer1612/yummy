@@ -1,0 +1,17 @@
+<nav class="flex items-center justify-between px-6 py-3 shadow-sm" aria-label="Main">
+  <a
+    routerLink="/"
+    class="flex items-center gap-2 rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-orange-600"
+  >
+    <img ngSrc="images/logo.png" alt="Yummy logo" width="40" height="40" priority />
+    <span class="text-lg font-semibold text-gray-900">Yummy</span>
+  </a>
+  <a
+    pButton
+    routerLink="/add-item"
+    label="Add Item"
+    icon="pi pi-plus"
+    size="small"
+    iconPos="right"
+  ></a>
+</nav>
