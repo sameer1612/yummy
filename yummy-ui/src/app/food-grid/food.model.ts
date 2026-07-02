@@ -3,4 +3,5 @@ export interface Food {
   name: string;
   caption: string;
   rating: number | null;
+  photo_url: string;
 }
