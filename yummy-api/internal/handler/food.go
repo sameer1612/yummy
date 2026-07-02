@@ -21,7 +21,6 @@ type FoodHandler struct {
 }
 
 func (handler *FoodHandler) ListFoods(context *gin.Context) {
-	cfg, _ := config.Load()
 	foods, err := handler.queries.ListFoods(context.Request.Context())
 	if err != nil {
 		context.JSON(500, gin.H{"error": err.Error()})
@@ -39,7 +38,7 @@ func (handler *FoodHandler) ListFoods(context *gin.Context) {
 			Name:     food.Name,
 			Caption:  food.Caption,
 			Rating:   nullable.NullableFloat(food.Rating),
-			PhotoUrl: cfg.BaseURL + "/" + food.PhotoPath,
+			PhotoUrl: config.Config.BaseURL + "/" + food.PhotoPath,
 		}
 	}
 

@@ -17,6 +17,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	config.Config = cfg
 
 	dbSQL, err := sql.Open("pgx", cfg.DatabaseURL)
 	if err != nil {

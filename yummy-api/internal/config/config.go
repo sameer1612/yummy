@@ -8,13 +8,15 @@ import (
 	"github.com/joho/godotenv"
 )
 
-type Config struct {
+type ConfigShape struct {
 	DatabaseURL string
 	Port        string
 	BaseURL     string
 }
 
-func Load() (Config, error) {
+var Config ConfigShape
+
+func Load() (ConfigShape, error) {
 	if err := godotenv.Load(); err != nil {
 		log.Println("Env file not found!")
 	}
@@ -26,10 +28,10 @@ func Load() (Config, error) {
 	}
 
 	if databaseURL == "" {
-		return Config{}, fmt.Errorf("DATABASE_URL is required")
+		return ConfigShape{}, fmt.Errorf("DATABASE_URL is required")
 	}
 
-	config := Config{
+	config := ConfigShape{
 		DatabaseURL: databaseURL,
 		Port:        ":" + port,
 		BaseURL:     "http://localhost:" + port,
