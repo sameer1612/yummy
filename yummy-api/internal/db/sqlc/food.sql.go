@@ -44,7 +44,7 @@ func (q *Queries) CreateFoodItem(ctx context.Context, arg CreateFoodItemParams) 
 }
 
 const getFoodItem = `-- name: GetFoodItem :one
-select id, name, caption, rating, photo_path, created_at, updated_at from food_items where id = $1
+SELECT id, name, caption, rating, photo_path, created_at, updated_at FROM food_items where id = $1
 `
 
 func (q *Queries) GetFoodItem(ctx context.Context, id int32) (FoodItem, error) {
@@ -63,7 +63,7 @@ func (q *Queries) GetFoodItem(ctx context.Context, id int32) (FoodItem, error) {
 }
 
 const listFoods = `-- name: ListFoods :many
-select id, name, caption, rating, photo_path, created_at, updated_at from food_items
+SELECT id, name, caption, rating, photo_path, created_at, updated_at FROM food_items ORDER BY created_at
 `
 
 func (q *Queries) ListFoods(ctx context.Context) ([]FoodItem, error) {
@@ -95,4 +95,40 @@ func (q *Queries) ListFoods(ctx context.Context) ([]FoodItem, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateFoodItem = `-- name: UpdateFoodItem :one
+UPDATE food_items 
+SET name = $1, caption = $2, rating = $3, photo_path = $4
+WHERE id = $5
+RETURNING id, name, caption, rating, photo_path, created_at, updated_at
+`
+
+type UpdateFoodItemParams struct {
+	Name      string
+	Caption   string
+	Rating    sql.NullFloat64
+	PhotoPath string
+	ID        int32
+}
+
+func (q *Queries) UpdateFoodItem(ctx context.Context, arg UpdateFoodItemParams) (FoodItem, error) {
+	row := q.db.QueryRowContext(ctx, updateFoodItem,
+		arg.Name,
+		arg.Caption,
+		arg.Rating,
+		arg.PhotoPath,
+		arg.ID,
+	)
+	var i FoodItem
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Caption,
+		&i.Rating,
+		&i.PhotoPath,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
