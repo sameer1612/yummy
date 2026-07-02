@@ -7,6 +7,7 @@ import (
 	db "yummy/internal/db/sqlc"
 	"yummy/internal/handler"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
@@ -29,6 +30,9 @@ func main() {
 	queries := db.New(dbSQL)
 
 	engine := gin.Default()
+	engine.Use(cors.New(cors.Config{
+		AllowOrigins: []string{"http://localhost:4200"},
+	}))
 	handler.RegisterRoutes(engine, queries)
 	engine.Run(cfg.Port)
 }
