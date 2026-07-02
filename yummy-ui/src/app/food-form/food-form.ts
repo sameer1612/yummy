@@ -54,7 +54,7 @@ export class FoodForm {
       name: food?.name ?? '',
       caption: food?.caption ?? '',
       rating: food?.rating ?? 0,
-      photo_path: food ? new URL(food.photo_url).pathname : '',
+      photo_path: food ? new URL(food.photo_path).pathname : '',
     };
   });
 

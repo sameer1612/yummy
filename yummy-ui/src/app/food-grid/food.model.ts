@@ -3,7 +3,7 @@ export interface Food {
   name: string;
   caption: string;
   rating: number | null;
-  photo_url: string;
+  photo_path: string;
 }
 
 export interface FoodInput {
