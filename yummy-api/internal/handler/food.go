@@ -21,6 +21,13 @@ type FoodItem struct {
 	PhotoPath string   `json:"photo_path"`
 }
 
+type CreateFoodItemRequest struct {
+	Name      string   `json:"name" binding:"required"`
+	Caption   string   `json:"caption" binding:"required"`
+	Rating    *float64 `json:"rating"`
+	PhotoPath string   `json:"photo_path" binding:"required"`
+}
+
 func toFoodItem(food db.FoodItem) FoodItem {
 	return FoodItem{
 		ID:        food.ID,
@@ -65,4 +72,25 @@ func (handler *FoodHandler) GetFoodItem(context *gin.Context) {
 	}
 
 	context.JSON(200, toFoodItem(food))
+}
+
+func (handler *FoodHandler) CreateFoodItem(c *gin.Context) {
+	var req CreateFoodItemRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	food, err := handler.queries.CreateFoodItem(c.Request.Context(), db.CreateFoodItemParams{
+		Name:      req.Name,
+		Caption:   req.Caption,
+		Rating:    nullable.ToNullFloat64(req.Rating),
+		PhotoPath: req.PhotoPath,
+	})
+	if err != nil {
+		c.JSON(400, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(201, toFoodItem(food))
 }

@@ -33,6 +33,8 @@ func main() {
 	engine := gin.Default()
 	engine.Use(cors.New(cors.Config{
 		AllowOrigins: []string{"http://localhost:4200"},
+		AllowHeaders: []string{"*"},
+		AllowMethods: []string{"*"},
 	}))
 
 	engine.Static("/uploads", "./uploads")
