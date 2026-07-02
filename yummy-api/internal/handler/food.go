@@ -44,13 +44,3 @@ func (handler *FoodHandler) ListFoods(context *gin.Context) {
 
 	context.JSON(200, gin.H{"data": res})
 }
-
-type CreateFoodRequest struct {
-	Name      string
-	Caption   string
-	Rating    *float64
-	PhotoPath string
-}
-
-func (handler *FoodHandler) CreateFood(context *gin.Context) {
-}
