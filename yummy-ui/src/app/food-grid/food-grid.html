@@ -14,8 +14,19 @@
           <div class="relative h-32 w-32 shrink-0 overflow-hidden rounded-lg">
             <img [ngSrc]="food.photo_url" [alt]="food.name" fill class="object-cover" />
           </div>
-          <div class="flex flex-col justify-center">
-            <h3 class="m-0 text-xl font-bold">{{ food.name }}</h3>
+          <div class="flex flex-1 flex-col justify-center">
+            <div class="flex items-start justify-between gap-2">
+              <h3 class="m-0 text-xl font-bold">{{ food.name }}</h3>
+              <a
+                pButton
+                [routerLink]="['/foods', food.id, 'edit']"
+                icon="pi pi-pencil"
+                [rounded]="true"
+                [text]="true"
+                size="small"
+                [attr.aria-label]="'Edit ' + food.name"
+              ></a>
+            </div>
             <p class="text-surface-600 dark:text-surface-300 m-0 mt-2">{{ food.caption }}</p>
             <div class="mt-3 flex items-center gap-1 text-sm">
               @if (food.rating !== null) {

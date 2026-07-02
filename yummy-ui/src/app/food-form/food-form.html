@@ -1,0 +1,94 @@
+<p-toast />
+<p-confirmdialog />
+
+<div class="mx-auto max-w-lg px-6 py-10">
+  @if (isEditMode() && foodService.foods.isLoading()) {
+    <p>Loading…</p>
+  } @else if (notFound()) {
+    <p-message severity="error" styleClass="block">Food item not found.</p-message>
+  } @else {
+    <h1 class="text-color mb-6 text-2xl font-semibold">
+      {{ isEditMode() ? 'Edit ' + existingFood()?.name : 'Add Food' }}
+    </h1>
+
+    <form novalidate (submit)="onSubmit($event)" class="flex flex-col gap-5">
+      @if (existingFood(); as food) {
+        <div class="flex flex-col gap-1">
+          <div class="relative h-48 w-48 overflow-hidden rounded-lg">
+            <img [ngSrc]="food.photo_url" [alt]="food.name" fill priority class="object-cover" />
+          </div>
+        </div>
+      }
+      <div class="flex flex-col gap-1">
+        <label for="food-name" class="text-color font-medium">Name</label>
+        <input pInputText id="food-name" [formField]="foodForm.name" fluid />
+        @if (foodForm.name().touched() && foodForm.name().invalid()) {
+          @for (error of foodForm.name().errors(); track error.kind) {
+            <p-message severity="error" size="small" variant="simple">{{
+              error.message
+            }}</p-message>
+          }
+        }
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="food-caption" class="text-color font-medium">Caption</label>
+        <textarea
+          id="food-caption"
+          rows="3"
+          [formField]="foodForm.caption"
+          class="border-surface-300 dark:border-surface-700 rounded-border text-color focus-visible:outline-primary w-full border px-3 py-2 focus-visible:outline-2 focus-visible:outline-offset-2"
+        ></textarea>
+        @if (foodForm.caption().touched() && foodForm.caption().invalid()) {
+          @for (error of foodForm.caption().errors(); track error.kind) {
+            <p-message severity="error" size="small" variant="simple">{{
+              error.message
+            }}</p-message>
+          }
+        }
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <label id="food-rating-label" class="text-color font-medium">
+          Rating: {{ model().rating > 0 ? model().rating : 'No rating' }}
+        </label>
+        <p-slider
+          [formField]="foodForm.rating"
+          [min]="0"
+          [max]="5"
+          [step]="0.5"
+          ariaLabelledBy="food-rating-label"
+          class="mx-1"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label for="food-photo-path" class="text-color font-medium">Photo path</label>
+        <input pInputText id="food-photo-path" [formField]="foodForm.photo_path" fluid />
+      </div>
+
+      <div class="mt-2 flex items-center justify-between gap-3">
+        <div class="flex gap-3">
+          <button
+            pButton
+            type="submit"
+            [label]="isEditMode() ? 'Save' : 'Create'"
+            [loading]="submitting()"
+          ></button>
+          <a pButton routerLink="/foods" label="Cancel" severity="secondary" [outlined]="true"></a>
+        </div>
+        @if (isEditMode()) {
+          <button
+            pButton
+            type="button"
+            label="Delete"
+            icon="pi pi-trash"
+            severity="danger"
+            [outlined]="true"
+            (click)="onDelete($event)"
+          ></button>
+        }
+      </div>
+    </form>
+  }
+</div>
