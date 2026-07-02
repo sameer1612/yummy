@@ -43,6 +43,25 @@ func (q *Queries) CreateFoodItem(ctx context.Context, arg CreateFoodItemParams) 
 	return i, err
 }
 
+const deleteFoodItem = `-- name: DeleteFoodItem :one
+DELETE FROM food_items WHERE id = $1 RETURNING id, name, caption, rating, photo_path, created_at, updated_at
+`
+
+func (q *Queries) DeleteFoodItem(ctx context.Context, id int32) (FoodItem, error) {
+	row := q.db.QueryRowContext(ctx, deleteFoodItem, id)
+	var i FoodItem
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Caption,
+		&i.Rating,
+		&i.PhotoPath,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getFoodItem = `-- name: GetFoodItem :one
 SELECT id, name, caption, rating, photo_path, created_at, updated_at FROM food_items where id = $1
 `

@@ -13,4 +13,5 @@ func RegisterRoutes(engine *gin.Engine, queries *db.Queries) {
 	router.POST("", handler.CreateFoodItem)
 	router.GET(":id", handler.GetFoodItem)
 	router.PUT(":id", handler.UpdateFoodItem)
+	router.DELETE(":id", handler.DeleteFoodItem)
 }

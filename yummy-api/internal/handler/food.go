@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"database/sql"
 	"strconv"
 	"yummy/internal/config"
 	db "yummy/internal/db/sqlc"
@@ -45,10 +46,10 @@ func toFoodItem(food db.FoodItem) FoodItem {
 	}
 }
 
-func (handler *FoodHandler) ListFoods(context *gin.Context) {
-	foods, err := handler.queries.ListFoods(context.Request.Context())
+func (handler *FoodHandler) ListFoods(c *gin.Context) {
+	foods, err := handler.queries.ListFoods(c.Request.Context())
 	if err != nil {
-		context.JSON(500, gin.H{"error": err.Error()})
+		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -61,24 +62,28 @@ func (handler *FoodHandler) ListFoods(context *gin.Context) {
 		res[i] = toFoodItem(food)
 	}
 
-	context.JSON(200, gin.H{"data": res})
+	c.JSON(200, gin.H{"data": res})
 }
 
-func (handler *FoodHandler) GetFoodItem(context *gin.Context) {
-	idParam := context.Param("id")
+func (handler *FoodHandler) GetFoodItem(c *gin.Context) {
+	idParam := c.Param("id")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
-		context.JSON(400, gin.H{"error": "invalid id"})
+		c.JSON(400, gin.H{"error": "invalid id"})
 		return
 	}
 
-	food, err := handler.queries.GetFoodItem(context.Request.Context(), int32(id))
+	food, err := handler.queries.GetFoodItem(c.Request.Context(), int32(id))
 	if err != nil {
-		context.JSON(404, gin.H{"error": err.Error()})
+		if err == sql.ErrNoRows {
+			c.JSON(404, gin.H{"error": "not found"})
+		} else {
+			c.JSON(500, gin.H{"error": err.Error()})
+		}
 		return
 	}
 
-	context.JSON(200, toFoodItem(food))
+	c.JSON(200, toFoodItem(food))
 }
 
 func (handler *FoodHandler) CreateFoodItem(c *gin.Context) {
@@ -125,7 +130,32 @@ func (handler *FoodHandler) UpdateFoodItem(c *gin.Context) {
 	})
 
 	if err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		if err == sql.ErrNoRows {
+			c.JSON(404, gin.H{"error": "not found"})
+		} else {
+			c.JSON(500, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	c.JSON(200, toFoodItem(food))
+}
+
+func (handler *FoodHandler) DeleteFoodItem(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "invalid id"})
+		return
+	}
+
+	food, err := handler.queries.DeleteFoodItem(c.Request.Context(), int32(id))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			c.JSON(404, gin.H{"error": "not found"})
+		} else {
+			c.JSON(500, gin.H{"error": err.Error()})
+		}
 		return
 	}
 

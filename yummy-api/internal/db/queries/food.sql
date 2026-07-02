@@ -14,3 +14,6 @@ UPDATE food_items
 SET name = $1, caption = $2, rating = $3, photo_path = $4
 WHERE id = $5
 RETURNING *;
+
+-- name: DeleteFoodItem :one
+DELETE FROM food_items WHERE id = $1 RETURNING *;
