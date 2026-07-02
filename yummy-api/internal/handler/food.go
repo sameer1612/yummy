@@ -8,16 +8,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type FoodItem struct {
-	ID       int32    `json:"id"`
-	Name     string   `json:"name"`
-	Caption  string   `json:"caption"`
-	Rating   *float64 `json:"rating"`
-	PhotoUrl string   `json:"photo_url"`
-}
-
 type FoodHandler struct {
 	queries *db.Queries
+}
+
+type FoodItem struct {
+	ID        int32    `json:"id"`
+	Name      string   `json:"name"`
+	Caption   string   `json:"caption"`
+	Rating    *float64 `json:"rating"`
+	PhotoPath string   `json:"photo_path"`
 }
 
 func (handler *FoodHandler) ListFoods(context *gin.Context) {
@@ -34,13 +34,23 @@ func (handler *FoodHandler) ListFoods(context *gin.Context) {
 	res := make([]FoodItem, len(foods))
 	for i, food := range foods {
 		res[i] = FoodItem{
-			ID:       food.ID,
-			Name:     food.Name,
-			Caption:  food.Caption,
-			Rating:   nullable.NullableFloat(food.Rating),
-			PhotoUrl: config.Config.BaseURL + "/" + food.PhotoPath,
+			ID:        food.ID,
+			Name:      food.Name,
+			Caption:   food.Caption,
+			Rating:    nullable.NullableFloat(food.Rating),
+			PhotoPath: config.Config.BaseURL + "/" + food.PhotoPath,
 		}
 	}
 
 	context.JSON(200, gin.H{"data": res})
+}
+
+type CreateFoodRequest struct {
+	Name      string
+	Caption   string
+	Rating    *float64
+	PhotoPath string
+}
+
+func (handler *FoodHandler) CreateFood(context *gin.Context) {
 }
