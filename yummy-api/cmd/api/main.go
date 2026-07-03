@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"log"
 	"yummy/internal/config"
-	db "yummy/internal/db/sqlc"
 	"yummy/internal/handler"
 
 	"github.com/gin-contrib/cors"
@@ -28,8 +27,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	queries := db.New(dbSQL)
-
 	engine := gin.Default()
 	engine.Use(cors.New(cors.Config{
 		AllowOrigins: []string{"http://localhost:4200"},
@@ -39,6 +36,6 @@ func main() {
 
 	engine.Static("/uploads", "./uploads")
 
-	handler.RegisterRoutes(engine, queries)
+	handler.RegisterRoutes(engine, dbSQL)
 	engine.Run(cfg.Port)
 }

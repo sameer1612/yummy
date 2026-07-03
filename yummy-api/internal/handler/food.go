@@ -6,15 +6,17 @@ import (
 	"strconv"
 	"strings"
 	"yummy/internal/config"
-	db "yummy/internal/db/sqlc"
-	"yummy/internal/utils/nullable"
+	"yummy/internal/db/jet/yummy/public/model"
+	"yummy/internal/db/jet/yummy/public/table"
+
+	. "github.com/go-jet/jet/v2/postgres"
+	"github.com/google/uuid"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 type FoodHandler struct {
-	queries *db.Queries
+	db *sql.DB
 }
 
 type FoodItem struct {
@@ -25,43 +27,28 @@ type FoodItem struct {
 	PhotoPath string   `json:"photo_path"`
 }
 
-type CreateFoodItemRequest struct {
-	Name      string   `json:"name" binding:"required"`
-	Caption   string   `json:"caption" binding:"required"`
-	Rating    *float64 `json:"rating"`
-	PhotoPath string   `json:"photo_path" binding:"required"`
-}
-
-type UpdateFoodItemRequest struct {
-	Name      string   `json:"name" binding:"required"`
-	Caption   string   `json:"caption" binding:"required"`
-	Rating    *float64 `json:"rating"`
-	PhotoPath string   `json:"photo_path" binding:"required"`
-}
-
-func toFoodItem(food db.FoodItem) FoodItem {
+func toFoodItem(food model.FoodItems) FoodItem {
 	return FoodItem{
 		ID:        food.ID,
 		Name:      food.Name,
 		Caption:   food.Caption,
-		Rating:    nullable.ToFloat64(food.Rating),
+		Rating:    food.Rating,
 		PhotoPath: config.Config.BaseURL + food.PhotoPath,
 	}
 }
 
+var tbl = table.FoodItems
+
 func (handler *FoodHandler) ListFoods(c *gin.Context) {
-	foods, err := handler.queries.ListFoods(c.Request.Context())
+	var results []model.FoodItems
+	err := SELECT(tbl.AllColumns).FROM(tbl).Query(handler.db, &results)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
-	if foods == nil {
-		foods = []db.FoodItem{}
-	}
-
-	res := make([]FoodItem, len(foods))
-	for i, food := range foods {
+	res := make([]FoodItem, len(results))
+	for i, food := range results {
 		res[i] = toFoodItem(food)
 	}
 
@@ -76,7 +63,8 @@ func (handler *FoodHandler) GetFoodItem(c *gin.Context) {
 		return
 	}
 
-	food, err := handler.queries.GetFoodItem(c.Request.Context(), int32(id))
+	var result model.FoodItems
+	err = SELECT(tbl.AllColumns).FROM(tbl).WHERE(tbl.ID.EQ(Int32(int32(id)))).Query(handler.db, &result)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			c.JSON(404, gin.H{"error": "not found"})
@@ -86,7 +74,7 @@ func (handler *FoodHandler) GetFoodItem(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, toFoodItem(food))
+	c.JSON(200, toFoodItem(result))
 }
 
 func (handler *FoodHandler) CreateFoodItem(c *gin.Context) {
@@ -127,20 +115,19 @@ func (handler *FoodHandler) CreateFoodItem(c *gin.Context) {
 		return
 	}
 
-	payload := db.CreateFoodItemParams{
+	var result model.FoodItems
+	err = tbl.INSERT(tbl.Name, tbl.Caption, tbl.Rating, tbl.PhotoPath).MODEL(model.FoodItems{
 		Name:      c.PostForm("name"),
 		Caption:   c.PostForm("caption"),
-		Rating:    nullable.ToNullFloat64(ratingPtr),
+		Rating:    ratingPtr,
 		PhotoPath: photoPath,
-	}
-
-	food, err := handler.queries.CreateFoodItem(c.Request.Context(), payload)
+	}).RETURNING(tbl.AllColumns).Query(handler.db, &result)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(201, toFoodItem(food))
+	c.JSON(201, toFoodItem(result))
 }
 
 func (handler *FoodHandler) UpdateFoodItem(c *gin.Context) {
@@ -168,7 +155,8 @@ func (handler *FoodHandler) UpdateFoodItem(c *gin.Context) {
 		ratingPtr = &val
 	}
 
-	food, err := handler.queries.GetFoodItem(c.Request.Context(), int32(id))
+	var food model.FoodItems
+	err = SELECT(tbl.AllColumns).FROM(tbl).WHERE(tbl.ID.EQ(Int32(int32(id)))).Query(handler.db, &food)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			c.JSON(404, gin.H{"error": "not found"})
@@ -197,21 +185,19 @@ func (handler *FoodHandler) UpdateFoodItem(c *gin.Context) {
 		}
 	}
 
-	payload := db.UpdateFoodItemParams{
-		ID:        int32(id),
+	var result model.FoodItems
+	err = tbl.UPDATE(tbl.Name, tbl.Caption, tbl.Rating, tbl.PhotoPath).MODEL(model.FoodItems{
 		Name:      c.PostForm("name"),
 		Caption:   c.PostForm("caption"),
-		Rating:    nullable.ToNullFloat64(ratingPtr),
+		Rating:    ratingPtr,
 		PhotoPath: photoPath,
-	}
-
-	updatedFood, err := handler.queries.UpdateFoodItem(c.Request.Context(), payload)
+	}).WHERE(tbl.ID.EQ(Int32(int32(id)))).RETURNING(tbl.AllColumns).Query(handler.db, &result)
 	if err != nil {
-		c.JSON(500, gin.H{"error": err.Error()})
+		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(200, toFoodItem(updatedFood))
+	c.JSON(200, toFoodItem(result))
 }
 
 func (handler *FoodHandler) DeleteFoodItem(c *gin.Context) {
@@ -222,7 +208,8 @@ func (handler *FoodHandler) DeleteFoodItem(c *gin.Context) {
 		return
 	}
 
-	food, err := handler.queries.DeleteFoodItem(c.Request.Context(), int32(id))
+	var result model.FoodItems
+	err = tbl.DELETE().WHERE(tbl.ID.EQ(Int32(int32(id)))).RETURNING(tbl.AllColumns).Query(handler.db, &result)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			c.JSON(404, gin.H{"error": "not found"})
@@ -232,5 +219,5 @@ func (handler *FoodHandler) DeleteFoodItem(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, toFoodItem(food))
+	c.JSON(200, toFoodItem(result))
 }
