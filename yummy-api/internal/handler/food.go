@@ -7,16 +7,14 @@ import (
 	"strings"
 	"yummy/internal/config"
 	"yummy/internal/db/jet/yummy/public/model"
-	"yummy/internal/db/jet/yummy/public/table"
-
-	. "github.com/go-jet/jet/v2/postgres"
-	"github.com/google/uuid"
+	"yummy/internal/repository"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type FoodHandler struct {
-	db *sql.DB
+	repo repository.Repository
 }
 
 type FoodItem struct {
@@ -27,44 +25,38 @@ type FoodItem struct {
 	PhotoPath string   `json:"photo_path"`
 }
 
-func toFoodItem(food model.FoodItems) FoodItem {
+func toFoodItem(f model.FoodItems) FoodItem {
 	return FoodItem{
-		ID:        food.ID,
-		Name:      food.Name,
-		Caption:   food.Caption,
-		Rating:    food.Rating,
-		PhotoPath: config.Config.BaseURL + food.PhotoPath,
+		ID:        f.ID,
+		Name:      f.Name,
+		Caption:   f.Caption,
+		Rating:    f.Rating,
+		PhotoPath: config.Config.BaseURL + f.PhotoPath,
 	}
 }
 
-var tbl = table.FoodItems
-
-func (handler *FoodHandler) ListFoods(c *gin.Context) {
-	var results []model.FoodItems
-	err := SELECT(tbl.AllColumns).FROM(tbl).Query(handler.db, &results)
+func (h *FoodHandler) ListFoods(c *gin.Context) {
+	results, err := h.repo.List()
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
 	res := make([]FoodItem, len(results))
-	for i, food := range results {
-		res[i] = toFoodItem(food)
+	for i, f := range results {
+		res[i] = toFoodItem(f)
 	}
 
 	c.JSON(200, gin.H{"data": res})
 }
 
-func (handler *FoodHandler) GetFoodItem(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := strconv.Atoi(idParam)
+func (h *FoodHandler) GetFoodItem(c *gin.Context) {
+	id, err := parseID(c)
 	if err != nil {
-		c.JSON(400, gin.H{"error": "invalid id"})
 		return
 	}
 
-	var result model.FoodItems
-	err = SELECT(tbl.AllColumns).FROM(tbl).WHERE(tbl.ID.EQ(Int32(int32(id)))).Query(handler.db, &result)
+	result, err := h.repo.GetByID(id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			c.JSON(404, gin.H{"error": "not found"})
@@ -77,7 +69,7 @@ func (handler *FoodHandler) GetFoodItem(c *gin.Context) {
 	c.JSON(200, toFoodItem(result))
 }
 
-func (handler *FoodHandler) CreateFoodItem(c *gin.Context) {
+func (h *FoodHandler) CreateFoodItem(c *gin.Context) {
 	for _, key := range []string{"name", "caption"} {
 		if c.PostForm(key) == "" {
 			c.JSON(400, gin.H{"error": key + " is required"})
@@ -85,56 +77,28 @@ func (handler *FoodHandler) CreateFoodItem(c *gin.Context) {
 		}
 	}
 
-	var ratingPtr *float64
-	if r := c.PostForm("rating"); r != "" {
-		val, err := strconv.ParseFloat(r, 64)
-		if err != nil {
-			c.JSON(400, gin.H{"error": "invalid rating"})
-			return
-		}
-		ratingPtr = &val
-	}
-
-	file, err := c.FormFile("photo")
-	if err != nil {
-		c.JSON(400, gin.H{"error": "photo is required"})
-		return
-	}
-	ext := filepath.Ext(file.Filename)
-	filename := strings.TrimSuffix(file.Filename, ext)
-	randomId, err := uuid.NewV7()
-	if err != nil {
-		c.JSON(500, gin.H{"error": "photo id creation failed"})
-		return
-	}
-	destinationPath := "./uploads/" + filename + "-" + randomId.String() + ext
-	photoPath := "/uploads/" + filename + "-" + randomId.String() + ext
-	err = c.SaveUploadedFile(file, destinationPath)
-	if err != nil {
-		c.JSON(500, gin.H{"error": "photo upload failed"})
+	rating, ok := parseRating(c)
+	if !ok {
 		return
 	}
 
-	var result model.FoodItems
-	err = tbl.INSERT(tbl.Name, tbl.Caption, tbl.Rating, tbl.PhotoPath).MODEL(model.FoodItems{
-		Name:      c.PostForm("name"),
-		Caption:   c.PostForm("caption"),
-		Rating:    ratingPtr,
-		PhotoPath: photoPath,
-	}).RETURNING(tbl.AllColumns).Query(handler.db, &result)
+	photoPath, ok := savePhoto(c)
+	if !ok {
+		return
+	}
+
+	result, err := h.repo.Create(c.PostForm("name"), c.PostForm("caption"), photoPath, rating)
 	if err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(201, toFoodItem(result))
 }
 
-func (handler *FoodHandler) UpdateFoodItem(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := strconv.Atoi(idParam)
+func (h *FoodHandler) UpdateFoodItem(c *gin.Context) {
+	id, err := parseID(c)
 	if err != nil {
-		c.JSON(400, gin.H{"error": "invalid id"})
 		return
 	}
 
@@ -145,18 +109,12 @@ func (handler *FoodHandler) UpdateFoodItem(c *gin.Context) {
 		}
 	}
 
-	var ratingPtr *float64
-	if r := c.PostForm("rating"); r != "" {
-		val, err := strconv.ParseFloat(r, 64)
-		if err != nil {
-			c.JSON(400, gin.H{"error": "invalid rating"})
-			return
-		}
-		ratingPtr = &val
+	rating, ok := parseRating(c)
+	if !ok {
+		return
 	}
 
-	var food model.FoodItems
-	err = SELECT(tbl.AllColumns).FROM(tbl).WHERE(tbl.ID.EQ(Int32(int32(id)))).Query(handler.db, &food)
+	existing, err := h.repo.GetByID(id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			c.JSON(404, gin.H{"error": "not found"})
@@ -165,51 +123,31 @@ func (handler *FoodHandler) UpdateFoodItem(c *gin.Context) {
 		}
 		return
 	}
-	photoPath := food.PhotoPath
 
-	file, err := c.FormFile("photo")
-	if err == nil {
-		ext := filepath.Ext(file.Filename)
-		filename := strings.TrimSuffix(file.Filename, ext)
-		randomId, err := uuid.NewV7()
-		if err != nil {
-			c.JSON(500, gin.H{"error": "photo id creation failed"})
-			return
-		}
-		destinationPath := "./uploads/" + filename + "-" + randomId.String() + ext
-		photoPath = "/uploads/" + filename + "-" + randomId.String() + ext
-		err = c.SaveUploadedFile(file, destinationPath)
-		if err != nil {
-			c.JSON(500, gin.H{"error": "photo upload failed"})
+	photoPath := existing.PhotoPath
+	if _, err := c.FormFile("photo"); err == nil {
+		photoPath, ok = savePhoto(c)
+		if !ok {
 			return
 		}
 	}
 
-	var result model.FoodItems
-	err = tbl.UPDATE(tbl.Name, tbl.Caption, tbl.Rating, tbl.PhotoPath).MODEL(model.FoodItems{
-		Name:      c.PostForm("name"),
-		Caption:   c.PostForm("caption"),
-		Rating:    ratingPtr,
-		PhotoPath: photoPath,
-	}).WHERE(tbl.ID.EQ(Int32(int32(id)))).RETURNING(tbl.AllColumns).Query(handler.db, &result)
+	result, err := h.repo.Update(id, c.PostForm("name"), c.PostForm("caption"), photoPath, rating)
 	if err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(200, toFoodItem(result))
 }
 
-func (handler *FoodHandler) DeleteFoodItem(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := strconv.Atoi(idParam)
+func (h *FoodHandler) DeleteFoodItem(c *gin.Context) {
+	id, err := parseID(c)
 	if err != nil {
-		c.JSON(400, gin.H{"error": "invalid id"})
 		return
 	}
 
-	var result model.FoodItems
-	err = tbl.DELETE().WHERE(tbl.ID.EQ(Int32(int32(id)))).RETURNING(tbl.AllColumns).Query(handler.db, &result)
+	result, err := h.repo.Delete(id)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			c.JSON(404, gin.H{"error": "not found"})
@@ -220,4 +158,47 @@ func (handler *FoodHandler) DeleteFoodItem(c *gin.Context) {
 	}
 
 	c.JSON(200, toFoodItem(result))
+}
+
+func parseID(c *gin.Context) (int32, error) {
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		c.JSON(400, gin.H{"error": "invalid id"})
+	}
+	return int32(id), err
+}
+
+func parseRating(c *gin.Context) (*float64, bool) {
+	r := c.PostForm("rating")
+	if r == "" {
+		return nil, true
+	}
+	val, err := strconv.ParseFloat(r, 64)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "invalid rating"})
+		return nil, false
+	}
+	return &val, true
+}
+
+func savePhoto(c *gin.Context) (string, bool) {
+	file, err := c.FormFile("photo")
+	if err != nil {
+		c.JSON(400, gin.H{"error": "photo is required"})
+		return "", false
+	}
+	ext := filepath.Ext(file.Filename)
+	filename := strings.TrimSuffix(file.Filename, ext)
+	randomId, err := uuid.NewV7()
+	if err != nil {
+		c.JSON(500, gin.H{"error": "photo id creation failed"})
+		return "", false
+	}
+	dest := "./uploads/" + filename + "-" + randomId.String() + ext
+	path := "/uploads/" + filename + "-" + randomId.String() + ext
+	if err = c.SaveUploadedFile(file, dest); err != nil {
+		c.JSON(500, gin.H{"error": "photo upload failed"})
+		return "", false
+	}
+	return path, true
 }
