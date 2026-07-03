@@ -5,6 +5,7 @@ import { Router, RouterLink } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { FileSelectEvent, FileUploadModule } from 'primeng/fileupload';
 import { InputTextModule } from 'primeng/inputtext';
 import { MessageModule } from 'primeng/message';
 import { SliderModule } from 'primeng/slider';
@@ -17,6 +18,7 @@ import { FoodService } from '../food-grid/food.service';
   imports: [
     ButtonModule,
     ConfirmDialogModule,
+    FileUploadModule,
     InputTextModule,
     MessageModule,
     SliderModule,
@@ -55,12 +57,14 @@ export class FoodForm {
       caption: food?.caption ?? '',
       rating: food?.rating ?? 0,
       photo_path: food ? new URL(food.photo_path).pathname : '',
+      photo: null as File | null,
     };
   });
 
   protected readonly foodForm = form(this.model, (path) => {
     required(path.name, { message: 'Name is required.' });
     required(path.caption, { message: 'Caption is required.' });
+    required(path.photo, { message: 'Photo is required.', when: () => !this.isEditMode() });
   });
 
   protected readonly submitting = signal(false);
@@ -71,16 +75,21 @@ export class FoodForm {
       this.submitting.set(true);
       try {
         const value = this.model();
-        const payload = {
-          name: value.name,
-          caption: value.caption,
-          rating: value.rating > 0 ? value.rating : null,
-          photo_path: value.photo_path,
-        };
+        const rating = value.rating > 0 ? value.rating : null;
         if (this.isEditMode()) {
-          await this.foodService.update(Number(this.id()), payload);
+          await this.foodService.update(Number(this.id()), {
+            name: value.name,
+            caption: value.caption,
+            rating,
+            photo_path: value.photo_path,
+          });
         } else {
-          await this.foodService.create(payload);
+          await this.foodService.create({
+            name: value.name,
+            caption: value.caption,
+            rating,
+            photo: value.photo!,
+          });
         }
         this.router.navigate(['/foods']);
       } catch {
@@ -93,6 +102,14 @@ export class FoodForm {
         this.submitting.set(false);
       }
     });
+  }
+
+  protected onPhotoSelect(event: FileSelectEvent) {
+    this.foodForm.photo().value.set(event.files[0] ?? null);
+  }
+
+  protected onPhotoClear() {
+    this.foodForm.photo().value.set(null);
   }
 
   protected onDelete(event: Event) {

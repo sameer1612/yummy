@@ -62,10 +62,32 @@
         />
       </div>
 
-      <div class="flex flex-col gap-1">
-        <label for="food-photo-path" class="text-color font-medium">Photo path</label>
-        <input pInputText id="food-photo-path" [formField]="foodForm.photo_path" fluid />
-      </div>
+      @if (isEditMode()) {
+        <div class="flex flex-col gap-1">
+          <label for="food-photo-path" class="text-color font-medium">Photo path</label>
+          <input pInputText id="food-photo-path" [formField]="foodForm.photo_path" fluid />
+        </div>
+      } @else {
+        <div class="flex flex-col gap-1">
+          <span class="text-color font-medium">Photo</span>
+          <p-fileupload
+            mode="basic"
+            name="photo"
+            accept="image/*"
+            chooseLabel="Choose photo"
+            [auto]="false"
+            (onSelect)="onPhotoSelect($event)"
+            (onClear)="onPhotoClear()"
+          />
+          @if (foodForm.photo().touched() && foodForm.photo().invalid()) {
+            @for (error of foodForm.photo().errors(); track error.kind) {
+              <p-message severity="error" size="small" variant="simple">{{
+                error.message
+              }}</p-message>
+            }
+          }
+        </div>
+      }
 
       <div class="mt-2 flex items-center justify-between gap-3">
         <div class="flex gap-3">
