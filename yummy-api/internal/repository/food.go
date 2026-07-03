@@ -10,7 +10,7 @@ import (
 
 var tbl = table.FoodItems
 
-type Repository interface {
+type FoodRepository interface {
 	List() ([]model.FoodItems, error)
 	GetByID(id int32) (model.FoodItems, error)
 	Create(name, caption, photoPath string, rating *float64) (model.FoodItems, error)
@@ -22,7 +22,7 @@ type repository struct {
 	db *sql.DB
 }
 
-func NewRepository(db *sql.DB) Repository {
+func NewFoodRepository(db *sql.DB) FoodRepository {
 	return &repository{db: db}
 }
 

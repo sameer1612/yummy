@@ -9,7 +9,7 @@ import (
 
 func RegisterRoutes(engine *gin.Engine, db *sql.DB) {
 	router := engine.Group("/api/v1").Group("/foods")
-	handler := &FoodHandler{repo: repository.NewRepository(db)}
+	handler := &FoodHandler{repo: repository.NewFoodRepository(db)}
 	router.GET("", handler.ListFoods)
 	router.POST("", handler.CreateFoodItem)
 	router.GET(":id", handler.GetFoodItem)

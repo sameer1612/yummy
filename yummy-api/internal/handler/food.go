@@ -14,7 +14,7 @@ import (
 )
 
 type FoodHandler struct {
-	repo repository.Repository
+	repo repository.FoodRepository
 }
 
 type FoodItem struct {
