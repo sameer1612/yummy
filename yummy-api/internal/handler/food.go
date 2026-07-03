@@ -151,20 +151,24 @@ func (handler *FoodHandler) UpdateFoodItem(c *gin.Context) {
 		return
 	}
 
-	var req UpdateFoodItemRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
-		return
+	for _, key := range []string{"name", "caption"} {
+		if c.PostForm(key) == "" {
+			c.JSON(400, gin.H{"error": key + " is required"})
+			return
+		}
 	}
 
-	food, err := handler.queries.UpdateFoodItem(c.Request.Context(), db.UpdateFoodItemParams{
-		ID:        int32(id),
-		Name:      req.Name,
-		Caption:   req.Caption,
-		Rating:    nullable.ToNullFloat64(req.Rating),
-		PhotoPath: req.PhotoPath,
-	})
+	var ratingPtr *float64
+	if r := c.PostForm("rating"); r != "" {
+		val, err := strconv.ParseFloat(r, 64)
+		if err != nil {
+			c.JSON(400, gin.H{"error": "invalid rating"})
+			return
+		}
+		ratingPtr = &val
+	}
 
+	food, err := handler.queries.GetFoodItem(c.Request.Context(), int32(id))
 	if err != nil {
 		if err == sql.ErrNoRows {
 			c.JSON(404, gin.H{"error": "not found"})
@@ -173,8 +177,41 @@ func (handler *FoodHandler) UpdateFoodItem(c *gin.Context) {
 		}
 		return
 	}
+	photoPath := food.PhotoPath
 
-	c.JSON(200, toFoodItem(food))
+	file, err := c.FormFile("photo")
+	if err == nil {
+		ext := filepath.Ext(file.Filename)
+		filename := strings.TrimSuffix(file.Filename, ext)
+		randomId, err := uuid.NewV7()
+		if err != nil {
+			c.JSON(500, gin.H{"error": "photo id creation failed"})
+			return
+		}
+		destinationPath := "./uploads/" + filename + "-" + randomId.String() + ext
+		photoPath = "/uploads/" + filename + "-" + randomId.String() + ext
+		err = c.SaveUploadedFile(file, destinationPath)
+		if err != nil {
+			c.JSON(500, gin.H{"error": "photo upload failed"})
+			return
+		}
+	}
+
+	payload := db.UpdateFoodItemParams{
+		ID:        int32(id),
+		Name:      c.PostForm("name"),
+		Caption:   c.PostForm("caption"),
+		Rating:    nullable.ToNullFloat64(ratingPtr),
+		PhotoPath: photoPath,
+	}
+
+	updatedFood, err := handler.queries.UpdateFoodItem(c.Request.Context(), payload)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, toFoodItem(updatedFood))
 }
 
 func (handler *FoodHandler) DeleteFoodItem(c *gin.Context) {
