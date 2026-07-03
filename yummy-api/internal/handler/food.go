@@ -2,12 +2,15 @@ package handler
 
 import (
 	"database/sql"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"yummy/internal/config"
 	db "yummy/internal/db/sqlc"
 	"yummy/internal/utils/nullable"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type FoodHandler struct {
@@ -87,18 +90,51 @@ func (handler *FoodHandler) GetFoodItem(c *gin.Context) {
 }
 
 func (handler *FoodHandler) CreateFoodItem(c *gin.Context) {
-	var req CreateFoodItemRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(400, gin.H{"error": err.Error()})
+	for _, key := range []string{"name", "caption"} {
+		if c.PostForm(key) == "" {
+			c.JSON(400, gin.H{"error": key + " is required"})
+			return
+		}
+	}
+
+	var ratingPtr *float64
+	if r := c.PostForm("rating"); r != "" {
+		val, err := strconv.ParseFloat(r, 64)
+		if err != nil {
+			c.JSON(400, gin.H{"error": "invalid rating"})
+			return
+		}
+		ratingPtr = &val
+	}
+
+	file, err := c.FormFile("photo")
+	if err != nil {
+		c.JSON(400, gin.H{"error": "photo is required"})
+		return
+	}
+	ext := filepath.Ext(file.Filename)
+	filename := strings.TrimSuffix(file.Filename, ext)
+	randomId, err := uuid.NewV7()
+	if err != nil {
+		c.JSON(500, gin.H{"error": "photo id creation failed"})
+		return
+	}
+	destinationPath := "./uploads/" + filename + "-" + randomId.String() + ext
+	photoPath := "/uploads/" + filename + "-" + randomId.String() + ext
+	err = c.SaveUploadedFile(file, destinationPath)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "photo upload failed"})
 		return
 	}
 
-	food, err := handler.queries.CreateFoodItem(c.Request.Context(), db.CreateFoodItemParams{
-		Name:      req.Name,
-		Caption:   req.Caption,
-		Rating:    nullable.ToNullFloat64(req.Rating),
-		PhotoPath: req.PhotoPath,
-	})
+	payload := db.CreateFoodItemParams{
+		Name:      c.PostForm("name"),
+		Caption:   c.PostForm("caption"),
+		Rating:    nullable.ToNullFloat64(ratingPtr),
+		PhotoPath: photoPath,
+	}
+
+	food, err := handler.queries.CreateFoodItem(c.Request.Context(), payload)
 	if err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
