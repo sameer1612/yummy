@@ -112,6 +112,13 @@ export class FoodForm {
     this.foodForm.photo().value.set(null);
   }
 
+  protected formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 B';
+    const units = ['B', 'KB', 'MB'];
+    const exponent = Math.floor(Math.log(bytes) / Math.log(1024));
+    return `${parseFloat((bytes / 1024 ** exponent).toFixed(1))} ${units[exponent]}`;
+  }
+
   protected onDelete(event: Event) {
     this.confirmationService.confirm({
       target: event.target as EventTarget,

@@ -67,10 +67,15 @@ psql yummy -f internal/db/migrations/001_create_food_items.sql  # apply migratio
 
 ## Current state
 
-- `GET /api/v1/foods` — working, returns food items from Postgres
-- `CreateFoodItem` sqlc query exists, not yet wired to a handler
-- Photo upload not yet implemented
-- No other CRUD endpoints yet
+Full CRUD is implemented and working with the Angular frontend:
+
+- `GET /api/v1/foods` — list all food items
+- `GET /api/v1/foods/:id` — get single food item
+- `POST /api/v1/foods` — create with multipart/form-data (fields: name, caption, rating, photo file)
+- `PUT /api/v1/foods/:id` — update (JSON, photo_path as string)
+- `DELETE /api/v1/foods/:id` — delete, returns deleted item
+
+Photo upload: saves to `./uploads/`, generates `<originalname>-<uuidv7><ext>` filename, stores `/uploads/...` path in DB. `toFoodItem()` prepends `config.Config.BaseURL` when serializing.
 
 ## Decisions log
 
