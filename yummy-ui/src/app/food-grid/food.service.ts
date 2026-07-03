@@ -3,7 +3,7 @@ import { inject, Service } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 import { environment } from '../../environments/environment';
-import { CreateFoodInput, Food, FoodInput } from './food.model';
+import { CreateFoodInput, Food, UpdateFoodInput } from './food.model';
 
 interface FoodsResponse {
   data: Food[];
@@ -31,8 +31,17 @@ export class FoodService {
     this.foods.reload();
   }
 
-  async update(id: number, input: FoodInput): Promise<void> {
-    await firstValueFrom(this.http.put<void>(`${this.baseUrl}/${id}`, input));
+  async update(id: number, input: UpdateFoodInput): Promise<void> {
+    const formData = new FormData();
+    formData.append('name', input.name);
+    formData.append('caption', input.caption);
+    if (input.rating !== null) {
+      formData.append('rating', String(input.rating));
+    }
+    if (input.photo) {
+      formData.append('photo', input.photo);
+    }
+    await firstValueFrom(this.http.put<void>(`${this.baseUrl}/${id}`, formData));
     this.foods.reload();
   }
 

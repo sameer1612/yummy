@@ -56,7 +56,6 @@ export class FoodForm {
       name: food?.name ?? '',
       caption: food?.caption ?? '',
       rating: food?.rating ?? 0,
-      photo_path: food ? new URL(food.photo_path).pathname : '',
       photo: null as File | null,
     };
   });
@@ -81,7 +80,7 @@ export class FoodForm {
             name: value.name,
             caption: value.caption,
             rating,
-            photo_path: value.photo_path,
+            photo: value.photo ?? undefined,
           });
         } else {
           await this.foodService.create({
